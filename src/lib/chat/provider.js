@@ -10,6 +10,7 @@ import {
 
 const GROQ_URL = "https://api.groq.com/openai/v1";
 const reviewedModels = new Set(["openai/gpt-oss-20b", "openai/gpt-oss-120b"]);
+
 export function providerConfig() {
   const apiKey = process.env.GROQ_API_KEY;
   const model = process.env.AI_MODEL;
@@ -42,7 +43,7 @@ export async function modelReply(messages, tools, signal, toolChoice = "auto") {
   try {
     // OpenAI-compatible transport to Groq ONLY. No OpenAI key, fallback, built-in
     // search/code tools, paid service tier, background calls or automatic retries.
-    
+
     const { data, response } = await client.chat.completions
       .create(
         {
@@ -75,17 +76,9 @@ export async function modelReply(messages, tools, signal, toolChoice = "auto") {
       throw new HttpError(502, "The AI provider returned an invalid answer. Please retry.");
     return message;
   } catch (error) {
-
-
-    
-    
     if (error?.status === 400) {
       const details = error?.error ?? error?.body?.error ?? {};
-
-      
     }
-
-
 
     if (error?.status === 429) {
       await observeProviderLimits(error.headers, 429);
@@ -98,8 +91,6 @@ export async function modelReply(messages, tools, signal, toolChoice = "auto") {
     if (error instanceof HttpError) throw error;
     if (signal?.aborted || error?.name === "APIConnectionTimeoutError")
       throw new HttpError(504, "The AI provider timed out. Please try again later.");
-
-    
 
     if ([400, 401, 403, 404].includes(error?.status))
       throw new HttpError(
