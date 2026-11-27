@@ -1,3 +1,4 @@
+
 import "server-only";
 import { z } from "zod";
 import { chatServices } from "@/lib/chat/knowledge";
@@ -17,6 +18,7 @@ const tool = (name, description, properties, required) => ({
   },
 });
 const serviceProperty = { type: "string", enum: serviceNames };
+
 export const chatTools = [
   tool("suggest_service", "Attach a verified catalog service link.", { service: serviceProperty }, [
     "service",
@@ -27,7 +29,6 @@ export const chatTools = [
     { service: serviceProperty, date: { type: "string" } },
     ["service", "date"],
   ),
-  
   tool(
     "my_bookings",
     "Read the signed-in customer's latest 20 bookings, only with explicit sharing permission. Scope must be mine. No user ID argument.",
@@ -39,7 +40,6 @@ export const chatTools = [
     },
     ["scope"],
   ),
-
 ];
 
 // These handlers reuse the application's authenticated read APIs in-process. No
@@ -52,6 +52,7 @@ export async function executeChatTool(name, args, { shareBookings }) {
       href: `/homeservices/service/${encodeURIComponent(parsed.service)}`,
     };
   }
+
   if (name === "lookup_availability") {
     const parsed = z.object({ service, date: z.iso.date() }).strict().parse(args);
     const response = await getAvailability(
@@ -65,18 +66,18 @@ export async function executeChatTool(name, args, { shareBookings }) {
       snapshotOnly: true,
     };
   }
-  
+
   if (name === "my_bookings") {
-    z.object({
-      scope: z.literal("mine"),
-    }).strict().parse(args);
+    z.object({ scope: z.literal("mine") }).strict().parse(args);
 
     if (!shareBookings)
       return { error: "Booking sharing is off. Enable it explicitly, or view your Dashboard." };
+
     await requireUser("customer");
     const response = await getBookings(new Request("http://internal/api/bookings?scope=mine"));
     if (!response.ok)
       return { error: "Your booking status could not be verified. Open Dashboard." };
+
     const data = await response.json();
     return {
       bookings: data.bookings.map(({ service, date, time, status }) => ({
@@ -90,5 +91,6 @@ export async function executeChatTool(name, args, { shareBookings }) {
       checkedAt: new Date().toISOString(),
     };
   }
+
   return { error: "This tool is not permitted. Bookings are read-only." };
 }
